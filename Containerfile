@@ -3,9 +3,11 @@
 # ---
 FROM --platform=$BUILDPLATFORM ghcr.io/project-zot/golang:1.22 AS builder
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y npm && rm -rf /var/lib/apt/lists/*
+
 ARG TARGETOS
 ARG TARGETARCH
-ARG COMMIT
+ARG COMMIT=""
 ARG ZUI_VERSION=""
 ARG ZUI_REPO_OWNER="komastudios"
 ARG ZUI_REPO_NAME="zui"
