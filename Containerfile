@@ -3,19 +3,19 @@
 # ---
 FROM --platform=$BUILDPLATFORM ghcr.io/project-zot/golang:1.22 AS builder
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y npm && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y npm && rm -rf /var/lib/apt/lists/*
 
 ARG TARGETOS
 ARG TARGETARCH
 ARG COMMIT=""
-ARG ZUI_VERSION=""
-ARG ZUI_REPO_OWNER="komastudios"
-ARG ZUI_REPO_NAME="zui"
+# ARG ZUI_VERSION=""
+# ARG ZUI_REPO_OWNER="komastudios"
+# ARG ZUI_REPO_NAME="zui"
 
 RUN mkdir -p /go/src/github.com/project-zot/zot
 WORKDIR /go/src/github.com/project-zot/zot
 COPY . .
-RUN make COMMIT=$COMMIT OS=$TARGETOS ARCH=$TARGETARCH ZUI_VERSION=$ZUI_VERSION ZUI_REPO_OWNER=$ZUI_REPO_OWNER ZUI_REPO_NAME=$ZUI_REPO_NAME clean binary
+RUN make COMMIT=$COMMIT OS=$TARGETOS ARCH=$TARGETARCH clean binary
 RUN echo '{\n\
     "storage": {\n\
         "rootDirectory": "/var/lib/registry"\n\

@@ -5,6 +5,7 @@ package extensions
 
 import (
 	"embed"
+	"os"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -23,10 +24,11 @@ var content embed.FS
 
 type uiHandler struct {
 	log log.Logger
+	fs fs.FS
 }
 
 func (uih uiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buf, _ := content.ReadFile("build/index.html")
+	buf, _ := fs.ReadFile(uih.fs, "index.html")
 
 	_, err := w.Write(buf)
 	if err != nil {
@@ -68,8 +70,18 @@ func SetupUIRoutes(conf *config.Config, router *mux.Router,
 
 	log.Info().Msg("setting up ui routes")
 
-	fsub, _ := fs.Sub(content, "build")
-	uih := uiHandler{log: log}
+	var fsys fs.FS
+	fsys, _ = fs.Sub(content, "build")
+
+	uih := uiHandler{log: log, fs: fsys}
+
+	contentPath := conf.Extensions.UI.ContentPath
+	if contentPath != "" {
+		log.Info().Msg("serving local build for the ui")
+
+		fsys = os.DirFS(contentPath)
+		uih.fs = fsys
+	}
 
 	// See https://go-review.googlesource.com/c/go/+/482635/2/src/net/http/fs.go
 	// See https://github.com/golang/go/issues/59469
@@ -90,7 +102,7 @@ func SetupUIRoutes(conf *config.Config, router *mux.Router,
 	router.PathPrefix("/user").Methods(allowedMethods...).
 		Handler(addUISecurityHeaders(uih))
 	router.PathPrefix("/").Methods(allowedMethods...).
-		Handler(addUISecurityHeaders(http.FileServer(http.FS(fsub))))
+		Handler(addUISecurityHeaders(http.FileServer(http.FS(fsys))))
 
 	log.Info().Msg("finished setting up ui routes")
 }

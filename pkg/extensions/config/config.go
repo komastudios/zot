@@ -74,4 +74,5 @@ type ScrubConfig struct {
 
 type UIConfig struct {
 	BaseConfig `mapstructure:",squash"`
+	ContentPath string
 }
