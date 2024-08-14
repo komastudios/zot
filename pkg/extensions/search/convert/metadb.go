@@ -339,13 +339,17 @@ func RepoMeta2RepoSummary(ctx context.Context, repoMeta mTypes.RepoMeta,
 		repoSize                 = repoMeta.Size
 	)
 
-	if repoLastUpdatedTimestamp == nil {
-		repoLastUpdatedTimestamp = &time.Time{}
-	}
-
 	imageSummary, _, err := FullImageMeta2ImageSummary(ctx, GetFullImageMeta(lastUpdatedTag, repoMeta,
 		lastUpdatedImageMeta))
 	_ = err
+
+	if imageSummary != nil && (repoLastUpdatedTimestamp == nil || repoLastUpdatedTimestamp.IsZero()) {
+		repoLastUpdatedTimestamp = imageSummary.LastUpdated
+	}
+
+	if repoLastUpdatedTimestamp == nil {
+		repoLastUpdatedTimestamp = &time.Time{}
+	}
 
 	return &gql_generated.RepoSummary{
 		Name:          &repoName,
@@ -464,8 +468,12 @@ func ImageIndex2ImageSummary(ctx context.Context, fullImageMeta mTypes.FullImage
 	annotations := GetIndexAnnotations(fullImageMeta.Index.Annotations, manifestAnnotations)
 
 	imageLastUpdated := annotations.Created
-	if imageLastUpdated == nil {
+	if imageLastUpdated == nil || imageLastUpdated.IsZero() {
 		imageLastUpdated = &indexLastUpdated
+	}
+
+	if imageLastUpdated == nil || imageLastUpdated.IsZero() {
+		imageLastUpdated = &fullImageMeta.Statistics.PushTimestamp
 	}
 
 	indexSummary := gql_generated.ImageSummary{
@@ -508,6 +516,7 @@ func ImageManifest2ImageSummary(ctx context.Context, fullImageMeta mTypes.FullIm
 		artifactType   = zcommon.GetManifestArtifactType(fullImageMeta.Manifests[0].Manifest)
 		platform       = getPlatform(manifest.Config.Platform)
 		downloadCount  = fullImageMeta.Statistics.DownloadCount
+		pushTimestamp  = fullImageMeta.Statistics.PushTimestamp
 		isSigned       = isImageSigned(fullImageMeta.Signatures)
 	)
 
@@ -522,9 +531,13 @@ func ImageManifest2ImageSummary(ctx context.Context, fullImageMeta mTypes.FullIm
 	}
 
 	imageLastUpdated := annotations.Created
-	if imageLastUpdated == nil {
+	if imageLastUpdated == nil || imageLastUpdated.IsZero() {
 		configCreated := zcommon.GetImageLastUpdated(manifest.Config)
 		imageLastUpdated = &configCreated
+	}
+
+	if imageLastUpdated == nil || imageLastUpdated.IsZero() {
+		imageLastUpdated = &pushTimestamp
 	}
 
 	historyEntries, err := getAllHistory(manifest.Manifest, manifest.Config)
