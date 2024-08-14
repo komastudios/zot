@@ -51,6 +51,13 @@ func GetAnnotationValue(annotations map[string]string, annotationKey, labelKey s
 func GetCreated(annotations map[string]string) *time.Time {
 	createdStr := GetAnnotationValue(annotations, ispec.AnnotationCreated, LabelAnnotationCreated)
 
+	if createdStr == "" {
+		value, ok := annotations["org.cirruslabs.tart.upload-time"]
+		if ok {
+			createdStr = value
+		}
+	}
+
 	created, err := time.Parse(time.RFC3339, createdStr)
 	if err != nil {
 		return nil
